@@ -59,7 +59,7 @@ bool nRF24L01p::setBroadcastMac(nRF_address broadcast) {
   broadcastMac = broadcast;
 }
 
-extern void MQTT_receive_for_me_callback(nRF_address source, const void* buf, uint16_t len ); // TODO move this later to method references
+extern void MQTTSN_receive_for_me_callback(nRF_address source, const void* buf, uint16_t len ); // TODO move this later to method references
 
 void nRF24L01p::receiveForMeCallback(nRF_address source,  const void* buf, uint16_t len ) {
 
@@ -75,11 +75,11 @@ void nRF24L01p::receiveForMeCallback(nRF_address source,  const void* buf, uint1
   Serial.println();
 #endif
 
-  MQTT_receive_for_me_callback(source, buf, len);
+  MQTTSN_receive_for_me_callback(source, buf, len);
 
 }
 
-extern void MQTT_receive_broadcast_callback(nRF_address source, const void* buf, uint16_t len ); // TODO move this later to method references
+extern void MQTTSN_receive_broadcast_callback(nRF_address source, const void* buf, uint16_t len ); // TODO move this later to method references
 
 void nRF24L01p::receiveBroadcastCallback(nRF_address source, const void* buf, uint16_t len ) {
 
@@ -101,7 +101,7 @@ void nRF24L01p::receiveBroadcastCallback(nRF_address source, const void* buf, ui
   Serial.println();
 #endif
 
-  MQTT_receive_broadcast_callback(source,  buf, len);
+  MQTTSN_receive_broadcast_callback(source,  buf, len);
 
 }
 
