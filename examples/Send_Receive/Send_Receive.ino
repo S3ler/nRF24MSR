@@ -140,11 +140,12 @@ void pongOut() {
       uint32_t timeout = 10000;
       Serial.print("starting receiveLoop with timout "); Serial.print(timeout); Serial.println();
       radio.receiveLoop(timeout);
-       radio.logEnd("timout receiveLoop ", 4);
+      radio.logEnd("timout receiveLoop ", 4);
     }
     radio.receiveLoop(0);
   }
 }
 
 
-
+void MQTTSN_receive_for_me_callback(nRF_address source, const void* buf, uint16_t len ) { }
+void MQTTSN_receive_broadcast_callback(nRF_address source, const void* buf, uint16_t len ) { }
