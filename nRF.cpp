@@ -1,5 +1,4 @@
 /* 
- * <one line to give the program's name and a brief idea of what it does.>
  *  nRF24MSG Library - enhancing nRF24L01+ module by increasing payload sizes, adding 5 byte addresses-
  *  Copyright (C) 2016  Gabriel Nikol
  *
