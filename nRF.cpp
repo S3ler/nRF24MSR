@@ -317,7 +317,7 @@ bool nRF24L01p::receiveLoop(uint32_t timout) {
       }
     }
   }
-  _rf24.stopListening();
+  _rf24.startListening();
   yield();
   return result;
 }
@@ -345,6 +345,7 @@ bool nRF24L01p::write( const void* buf, uint8_t len ) {
 #if _send_profiling
     logEnd("nRF24L01p::write", 0);
 #endif
+    _rf24.startListening();
     return result;
   } else {
 #if enable_debug_output
