@@ -110,7 +110,7 @@ void pingOut() {
     delay(1000);
 
     radio.logStart(4);
-    uint8_t counting[255];
+    uint8_t counting[50];
     for (uint8_t i = 0 ; i < sizeof(counting); i++) {
       counting[i] = i;
     }

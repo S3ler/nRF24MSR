@@ -195,7 +195,7 @@ bool nRF24L01p::receiveLoop(uint32_t timout) {
 		if(!noError){
 		  break;
 		}
-
+		
 #if _receiving_profiling
                 logEnd("Waited for Data", 0);
 #endif
@@ -228,6 +228,7 @@ bool nRF24L01p::receiveLoop(uint32_t timout) {
                         Serial.print("payloadSize "); Serial.println(payloadSize);
 #endif
                         nRF_stream_ack ack = buildStreamAckPacket(first_nRF_stream_request_packet->source, StreamFlag_dataComplete);
+			delay(stream_request_ack_switching_delay);
                         writeAck( &ack, sizeof(ack) );
 #if _receiving_profiling
                         logEnd("Handled StreamData ", 0);
@@ -235,6 +236,7 @@ bool nRF24L01p::receiveLoop(uint32_t timout) {
                         yield();
                       } else {
                         nRF_stream_ack ack = buildStreamAckPacket(first_nRF_stream_request_packet->source, StreamFlag_streamCorrupted);
+			delay(stream_request_ack_switching_delay);
                         writeAck( &ack, sizeof(ack) );
 #if _receiving_profiling
                         logEnd("Handled StreamData with not fitting packetCounter", 0);
