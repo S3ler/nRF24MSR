@@ -116,8 +116,6 @@ bool nRF24L01p::receiveLoop(uint32_t timout) {
   while (true) {
     yield();
     _rf24.startListening();
-    _rf24.flush_tx();
-
 
     byte pipeNo;
     while (_rf24.available(&pipeNo)) { // or if(?)
@@ -168,15 +166,36 @@ bool nRF24L01p::receiveLoop(uint32_t timout) {
               yield();
               bool noError = true;
               for (int16_t i = first_nRF_stream_request_packet->streamLength - 1 ; i >= 0 ; i--) { // count down for each packet in stream
+
 #if enable_debug_output
                 Serial.print("Waiting for StreamData "); Serial.println(i);
 #endif
 #if _receiving_profiling
                 logStart(0);
 #endif
+
+		uint64_t start = millis();
                 while (!_rf24.available(&pipeNo)) {
                   yield();
-                };
+                  uint64_t end = millis();
+                  uint64_t duration = 0;
+                  if(end < start){
+                    // millis overflow
+                    duration = UINT64_MAX - start;
+                    duration +=  end;
+                  }else {
+                    duration =  end - start;
+                  }
+		  if(duration > stream_data_timeout) {
+                    // timout
+                    noError = false;
+                    break;
+                  }
+                }
+		if(!noError){
+		  break;
+		}
+
 #if _receiving_profiling
                 logEnd("Waited for Data", 0);
 #endif
@@ -1140,8 +1159,8 @@ void nRF24L01p::logStop( uint8_t timer) {
 }
 
 void nRF24L01p::logEnd(const char* profile_message, uint8_t timer) {
-  uint32_t end = millis();
-  uint32_t duration = 0;
+  uint64_t end = millis();
+  uint64_t duration = 0;
   if (end < start[timer]) {
     // overflow
     duration = UINT64_MAX - start[timer];

@@ -40,6 +40,7 @@
 #define stream_request_retry_maxSleepDuration 3000 // ms
 #define stream_request_ack_timeout            2000 // ms
 #define stream_data_ack_timeout               2000 // ms
+#define stream_data_timeout	              1000 // ms
 
 #define switchingDelay                           0 // ms, delay between switching stop-/startListening 
 #define stream_request_ack_switching_delay       5 // ms, best practive value
