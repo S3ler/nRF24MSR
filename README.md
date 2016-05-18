@@ -1,26 +1,37 @@
 # nRF24MSR (nRF24L01+ MultiSendReceive Library)
 version 0.0.1a
 
-This library is written for the nRF24L01+ modules overcoming the two main limitations in these modules: Limited address range (255 maximum) and limited payload size (32 bytes maximum). But on the other hand these modules are very cheap (e.g. compared to Bluetooth or ZigBee Modules for Arduino). The whole library is based on RF24 from TMRh20 (see Installation).
-This library implements a protocol providing 5 bytes long adress (nRF_address) and a maximum payload size (maxPayloadLength) which can be configured (depend on how much RAM you can provide), per default the maximum payload size is set to 57 bytes.
+This library is written for the nRF24L01+ modules overcoming the two main limitations in these modules:
+ - Limited address range (255 maximum)
+ - limited payload size (32 bytes maximum).
+
+The nRF24L01 modules are very cheap (e.g. compared to Bluetooth or ZigBee Modules for Arduino) and so we can use these cheap modules for greater payloads.
+The whole library is based on RF24 from TMRh20 (see Installation).
+This library implements a protocol providing 5 bytes long adress (nRF_address) and a maximum payload size (maxPayloadLength) which can be configured (depend on how much RAM you can provide for the receive buffer).
+The default value for the maximum payload is set to 57 bytes.
 
 ## Example Sketch.
 ATTENTION: install the RF24 library first, it will not compile (cannot find RF24.h) without it.
 An example Sketch Send_Receive.ino is provided for the Arduino IDE.
-To change the roles switch the commend of lines 16 and 17 (commend out one: role_e role = role_ping_out; or role_e role = role_pong_back;)
+To change the roles switch the commend of lines 16 and 17:
+commend out one:
+ role_e role = role_ping_out;
+ or 
+ role_e role = role_pong_back;)
 You need one sender (role_ping_out) and one receiver (role_pong_back).
 The default Pins for the nRF24L01+ modules are Pins 7 and 8 (like in the default PINS of the RF24 library). These Pins can be changes in the nRF.h file.
 
 ## Installation:
-We have to install the RF24 library:
 
-  cd ~/Arduino/libraries
-  git clone https://github.com/TMRh20/RF24.git
+Install THMRh20/RF24 library:
 
-For use with ESP8266 Arduino IDE use exactly following configurations:
-at least python 2.7.6 installed (maybe another python version of 2.7.X works too. Not tested)
+	cd ~/Arduino/libraries
+	git clone https://github.com/TMRh20/RF24.git
 
-TMRh20 (https://github.com/TMRh20/RF24) commit hash: 372562a2ffb81f43504ff35fdd17ec98fbca26e8
+For using the library with ESP8266 Arduino IDE use exactly following configurations:
+At least python 2.7.6 installed (maybe another python version of 2.7.X works too. Not tested)
+
+TMRh20 (https://github.com/TMRh20/RF24) (see Known Errors)
 
 ESP8266 (https://github.com/esp8266/Arduino) commit hash: 33723a9b52a40ed10cdced4507dde63b42fa38ed
 
@@ -30,7 +41,6 @@ install ESP8266 support using git version:
 (from: https://github.com/esp8266/Arduino)
 
 	// cd to extracted arduino-1.6.7
-
 	cd hardware
 	mkdir esp8266com
 	cd esp8266com
@@ -41,10 +51,19 @@ install ESP8266 support using git version:
 
 	// restart arduino ide if open
 
-Remove use of EEPROM:
-remove #include "printf.h", printf(...) and Serial.println(F(...)) from sketches, those produces only hex numbers on the console now.
-Serial.print() and Serial.println() works normally.
-
+##Kown Errors
+Compilation error for ESP8266:
+~Arduino/libraries/RF24/RF24_config.h:133:27: fatal error: avr/pgmspace.h: No such file or directory
+  #include <avr/pgmspace.h>
+Solution:
+cd ~/Arduino/libraries/RF24/
+open RF24_config.h
+	go to line 133
+	change line 133 from: 	#include <avr/pgmspace.h> 
+	to:#ifdef ESP8266 #include <pgmspace.h> #else #include <avr/pgmspace.h> #endif
+	save file.
+This uses #include <pgmspace.h> for ESP8266 compilatins.
+	
 ## Implementations and Configurations Details:
 
 The first limitation exist because the adressing is made by the modules by so called pipes. The pipes are 5 bytes long but only the last byte between the pipes can be different. This means we can only adress 255 devices.
