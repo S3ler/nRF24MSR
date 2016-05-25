@@ -59,10 +59,10 @@ Solution:
 cd ~/Arduino/libraries/RF24/
 open RF24_config.h
 	go to line 133
-	change line 133 from: 	#include <avr/pgmspace.h> 
-	to:#ifdef ESP8266 #include <pgmspace.h> #else #include <avr/pgmspace.h> #endif
+	change line 133 from: 	#include \<avr/pgmspace.h\> 
+	to:#ifdef ESP8266 #include \<pgmspace.h\> #else #include \<avr/pgmspace.h\> #endif
 	save file.
-This uses #include <pgmspace.h> for ESP8266 compilatins.
+This uses pgmspace.h for ESP8266 compilatins.
 	
 ## Implementations and Configurations Details:
 
