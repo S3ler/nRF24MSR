@@ -72,17 +72,61 @@ The second limitations exist because the modules' maximum payload length is 32 b
 This library implements a protocol providing 5 bytes long adress (nRF_address) and a maximum payload size (maxPayloadLength) which can be configured (depend on how much RAM you can provide), per default the maximum payload size is set to 57 bytes.
 
 nRF_address (5 bytes):
-| bytes 0 | bytes 1 | bytes 2 | bytes 3 | bytes 4 |
+
+     | byte 0 | byte 1 | byte 2 | byte 3 | byte 4 |
 
 As a withdraw we communicate over a single pipes (used_pipes) and our protocol header (nRF_message_header) consumes 13 byte (length(1)+type(1)+destination(5)+source(5)+streamLength(1)|streamFlags(1)) leaving 19 byte (32 - 13) payload for a single packet. The protocol needs to establish something like a connection for payloads greater then 19 bytes.
 
-Example for single packet with header in bytes 0-12 (13 bytes) and in bytes 13-31 (19 bytes) payload:<br \>
-| byte 0 | byte 1 | bytes 2 - 6		    | bytes 7 - 11	 | byte 12	| byte 13-31	| <br \>
-| length | type   | nRF_address destination | nRF_address source | streamLength | payloa	| <br \>
+Example for single nRF_stream_data packet with header in bytes 0-12 (13 bytes) and in bytes 13-31 (19 bytes) payload:
+
+     |byte 0 | byte 1 | bytes 2 - 6             | bytes 7 - 11       | byte 12	    | byte 13-31 |
+     |length | type   | nRF_address destination | nRF_address source | streamLength | payload    |
+     
+Example for a nRF_stream_ack packet:
+
+     |byte 0 | byte 1 | bytes 2 - 6             | bytes 7 - 11       | byte 12	   | 
+     |length | type   | nRF_address destination | nRF_address source | streamFlags | 
 
 A connection is established by a so called StreamRequest packet providing no payload but the count (streamLength) of packets in the stream.
 The StreamRequest packet is acknowledged by a StreamAck packet with a streamFlags instead of a streamLength, accepting the stream (the StreamFlag_streamAccepted is set) if he can received it or denied it (StreamFlag_streamAccepted=StreamFlag_streamDenied is not set) if the streamLength does not fit in the receive buffer.
 When the StreamRequest is accepted, the sender sends StreamData packets with a streamPacketCounter instead of the streamLength (the streamPacketCounter goes from streamLength-1 to 0, to order the StreamData packets). When the StreamData packet with the streamPacketCounter of 0 is received and every packet between in the right order is received by the receiver the whole stream is acknowledged by a StreamAck packet with the StreamFlag_streamComplete flag set. If not every packet is received or a timout occurs (TODO timout detection here is not implemented) the receiver sends a StreamAck packet without the StreamFlag_streamComplet=StreamFlag_streamCorrupted flag set. No automatic resend is implemented.
+
+For payload length < 20 bytes:
+
+                 Sender                             Receiver
+      [set address] |                                   |
+                    |                                   |
+         write() -->| --- nRF_stream_request_data ----> | 
+               [OK] | <------ nRF_stream_ack  --------- | 
+                    |                                   | [exec receiveForMeCallback]
+                    |                                   |
+
+
+For payload length >= 20 bytes:
+
+                 Sender                             Receiver
+      [set address] |                                   |
+                    |                                   |
+         write() -->| ------- nRF_stream_request -----> | (connection requested for n data packets)
+                    | <------ nRF_stream_ack  --------- | (connection established)
+                    |                                   |
+                    | --- nRF_stream_request_data ----> | ( 0-th data packet send)
+                    | <------ nRF_stream_ack  --------- | ( 0-th data packet acknowledged)
+                    //                                  //
+                    | --- nRF_stream_request_data ----> | ( (n-1)-th data packet send)
+               [OK] | <------ nRF_stream_ack  --------- | ( (n-1)-th data packet acknowledged)
+                    |                                   | [exec receiveForMeCallback]
+                    |                                   |
+
+
+For broadcasts (only for payload length < 20 bytes):
+
+                 Sender                             Receiver
+                    |                                   |
+         write() -->| --- nRF_stream_request_data ----> | 
+               [OK] |                                   | [exec receiveBroadcastCallback]
+                    |                                   |
+
 
 For a detail look at the messages and flags see file nRF24Messages.h.
 For a change of the configuration like: Pins where the nRF24L01+ module is connected, maximum payload length and used pipes take a look at file nRF.h.
