@@ -66,12 +66,19 @@ This uses pgmspace.h for ESP8266 compilatins.
 	
 ## Implementations and Configurations Details:
 
-The first limitation exist because the adressing is made by the modules by so called pipes. The pipes are 5 bytes long but only the last byte between the pipes can be different. This means we can only adress 255 devices.
-The second limitations exist because the modules' maximum payload length is 32 bytes. When we want so send more then 32 bytes we need a simple protocol.
+The first limitation of the nRF24L01+ modules exist because the adressing is made by so called pipes. The pipes are 5 bytes long but only the last byte between the pipes can be different. This means we can only adress 255 devices.
+The second limitations exist because the modules' maximum payload length is 32 bytes. When we want so send more then 32 bytes we need an additional protocol like this.
 
 This library implements a protocol providing 5 bytes long adress (nRF_address) and a maximum payload size (maxPayloadLength) which can be configured (depend on how much RAM you can provide), per default the maximum payload size is set to 57 bytes.
 
+nRF_address (5 bytes):
+| bytes 0 | bytes 1 | bytes 2 | bytes 3 | bytes 4 |
+
 As a withdraw we communicate over a single pipes (used_pipes) and our protocol header (nRF_message_header) consumes 13 byte (length(1)+type(1)+destination(5)+source(5)+streamLength(1)|streamFlags(1)) leaving 19 byte (32 - 13) payload for a single packet. The protocol needs to establish something like a connection for payloads greater then 19 bytes.
+
+Example for single packet with header in bytes 0-12 (13 bytes) and in bytes 13-31 (19 bytes) payload:<br \>
+| byte 0 | byte 1 | bytes 2 - 6		    | bytes 7 - 11	 | byte 12	| byte 13-31	| <br \>
+| length | type   | nRF_address destination | nRF_address source | streamLength | payloa	| <br \>
 
 A connection is established by a so called StreamRequest packet providing no payload but the count (streamLength) of packets in the stream.
 The StreamRequest packet is acknowledged by a StreamAck packet with a streamFlags instead of a streamLength, accepting the stream (the StreamFlag_streamAccepted is set) if he can received it or denied it (StreamFlag_streamAccepted=StreamFlag_streamDenied is not set) if the streamLength does not fit in the receive buffer.
