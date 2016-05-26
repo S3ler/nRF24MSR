@@ -70,6 +70,7 @@ The first limitation of the nRF24L01+ modules exist because the adressing is mad
 The second limitations exist because the modules' maximum payload length is 32 bytes. When we want so send more then 32 bytes we need an additional protocol like this.
 
 This library implements a protocol providing 5 bytes long adress (nRF_address) and a maximum payload size (maxPayloadLength) which can be configured (depend on how much RAM you can provide), per default the maximum payload size is set to 57 bytes.
+You have to notice that we do not use dynamic payload sizes our message are always 32 byte long. The real length is shown in the length field (byte 0).
 
 nRF_address (5 bytes):
 
@@ -180,6 +181,7 @@ Only in a StreamAck message we need flags and fortunately we do not need any str
 So we can use the lower 5 bits in StreamAck packets for Flags, and in StreamRequest/StreamData for the StreamLength.
 In a StreamAck message the 0b0001 0000 bit is always 0.
 In StreamRequest/StreamData the 0b0001 0000 bit is used for the StreamLength, additionally the 0b0000 1111 bits, and then we can think about the bits out of the length field. we have there 3 bits left (using all compression stuff) so we have a total of 3+5 = 8 bits for the streamlength, providing a maximum streamLength of 255 packets and 4*255 == 1020 bytes maximum payload. This should be enough space for MQTT-SN messages and Topic Names and Messages.
+By using fixed payload sizes, we can use the RF24-libraries functionality and can match depend on the length of received payload in the module the different protocols: 32 byte are the normal protocol and everything below is the lite protocol (especially 8 byte).
 
 Example for single nRF_comprehensive_stream_packet:
 
