@@ -190,3 +190,48 @@ Example for single nRF_comprehensive_stream_packet:
      | msb_streamLengt	 | length | always 1 | message_type | lsb_streamLength | destination | source     | payload	|
      
 // TODO: add a section how these two protocols are not overlapping and how we can use them both with prior code and what has to be exchanged/modified
+
+The result is that we have like above the 3 flow diagrams, but in this case with less payload.
+
+
+For payload length < 5 bytes:
+
+                 Sender                             Receiver
+      [set address] |                                   |
+                    |                                   |
+         write() -->| --- nRF_stream_request_data ----> | 
+               [OK] | <------ nRF_stream_ack  --------- | 
+                    |                                   | [exec receiveForMeCallback]
+                    |                                   |
+
+
+For payload length >= 5 bytes:
+We modify the the diagram for a payload length >= 5 to less message and make the protocol more lightweight.
+We remove the acknowledge for each packet and only acknowledge the last packet with a StreamComplete or StreamCorrupted.
+
+                 Sender                             Receiver
+      [set address] |                                   |
+                    |                                   |
+         write() -->| ------- nRF_stream_request -----> | (connection requested for n data packets)
+                    | <------ nRF_stream_ack  --------- | (connection established)
+                    |                                   |
+                    | --- nRF_stream_request_data ----> | ( 0-th data packet send)
+                    |                                   | ( 0-th data packet ack does not exist)
+                    | --- nRF_stream_request_data ----> | ( 1-th data packet send)
+                    |                                   | ( 1-th data packet ack does not exist)
+                    //                                  //
+                    | --- nRF_stream_request_data ----> | ( (n-1)-th data packet send)
+               [OK] | <------ nRF_stream_ack  --------- | ( stream acknowledged w. StreamComplete)
+                    |                                   | [exec receiveForMeCallback]
+                    |                                   |
+
+
+For broadcasts (only for payload length < 5 bytes):
+
+                 Sender                             Receiver
+                    |                                   |
+         write() -->| --- nRF_stream_request_data ----> | 
+               [OK] |                                   | [exec receiveBroadcastCallback]
+                    |                                   |
+
+
