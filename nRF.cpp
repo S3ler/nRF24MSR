@@ -34,12 +34,12 @@ void nRF24L01p::begin() {
 #endif
   _rf24.begin();
   delay(switchingDelay);
-  _rf24.setAutoAck(1);                    // Ensure autoACK is enabled
+  _rf24.setAutoAck(1);                     // Ensure autoACK is enabled
   _rf24.setRetries(15, 15);                // Smallest time between retries, max no. of retries
-  _rf24.setPayloadSize(32);                // Here we are sending 1-byte payloads to test the call-response speed
-  _rf24.openWritingPipe(_pipes[1]);        // Both radios listen on the same pipes by default, and switch when writing
+  _rf24.setPayloadSize(32);                // Here we are sending 32-byte payloads for every message
+  _rf24.openWritingPipe(_pipes[1]);        // Both radios listen on the same pipes
   _rf24.openReadingPipe(1, _pipes[0]);
-  _rf24.startListening();                 // Start listening
+  _rf24.startListening();                  // Start listening
   delay(switchingDelay);
 #if _startup_profiling
   logEnd("nRF24L01p::begin", 1);
@@ -110,7 +110,7 @@ void nRF24L01p::stopReceiveLoop() {
 }
 
 bool nRF24L01p::receiveLoop(uint32_t timout) {
-  uint32_t startTimer = millis();
+  uint64_t startTimer = millis();
   bool result = false;
   breakReceiveLoop = false;
   while (true) {
@@ -177,22 +177,15 @@ bool nRF24L01p::receiveLoop(uint32_t timout) {
 		uint64_t start = millis();
                 while (!_rf24.available(&pipeNo)) {
                   yield();
-                  uint64_t end = millis();
-                  uint64_t duration = 0;
-                  if(end < start){
-                    // millis overflow
-                    duration = UINT64_MAX - start;
-                    duration +=  end;
-                  }else {
-                    duration =  end - start;
-                  }
-		  if(duration > stream_data_timeout) {
-                    // timout
+		  if(isTimeout(start, stream_data_timeout)) {
                     noError = false;
                     break;
                   }
                 }
 		if(!noError){
+#if _receiving_profiling
+                logEnd("Waited for Data Timout", 0);
+#endif
 		  break;
 		}
 		
@@ -327,7 +320,7 @@ bool nRF24L01p::receiveLoop(uint32_t timout) {
       result = true;
       break;
     }
-    if (timout != 0) {
+    if (timout != 0) { // timout == 0 means we wait until: breakReceiveLoop == true
       if (isTimeout(startTimer, timout)) {
 #if enable_debug_output
         Serial.println("leaving receiveloop: timeout");
@@ -831,10 +824,10 @@ bool  nRF24L01p::waitForStreamAckPacket(uint8_t streamFlags) { // return true wh
 #if _send_profiling
   logStart(3);
 #endif
-  uint32_t startTimeout = millis();
+  uint64_t startTimeout = millis();
   _rf24.startListening();
   delay(switchingDelay);
-  uint16_t delayTime = 300;
+ 
 #if enable_debug_output
   Serial.println("Waiting");
 #endif
@@ -1134,9 +1127,9 @@ void nRF24L01p::printStreamAckPacket(nRF_stream_ack packet) {
   Serial.println("=========================================================");
 }
 
-bool nRF24L01p::isTimeout(uint32_t startTimeout, uint32_t maxTimoutValue) {
-  uint32_t end = millis();
-  uint32_t duration = 0;
+bool nRF24L01p::isTimeout(uint64_t startTimeout, uint64_t maxTimoutValue) {
+  uint64_t end = millis();
+  uint64_t duration = 0;
   if (end < startTimeout) {
     // overflow
     duration = UINT64_MAX - startTimeout;

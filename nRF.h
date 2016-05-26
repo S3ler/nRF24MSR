@@ -124,7 +124,7 @@ class nRF24L01p {
     bool areEqual(nRF_address address1, nRF_address address2);
 
     // timout methods
-    bool isTimeout(uint32_t startTimeout, uint32_t maxTimoutValue);
+    bool isTimeout(uint64_t startTimeout, uint64_t maxTimoutValue);
 
     // print packets
     void printStreamAckPacket(nRF_stream_ack packet) ;
