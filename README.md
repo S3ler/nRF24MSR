@@ -181,13 +181,13 @@ Only in a StreamAck message we need flags and fortunately we do not need any str
 So we can use the lower 5 bits in StreamAck packets for Flags, and in StreamRequest/StreamData for the StreamLength.
 In a StreamAck message the 0b0001 0000 bit is always 0.
 In StreamRequest/StreamData the 0b0001 0000 bit is used for the StreamLength, additionally the 0b0000 1111 bits, and then we can think about the bits out of the length field. we have there 3 bits left (using all compression stuff) so we have a total of 3+5 = 8 bits for the streamlength, providing a maximum streamLength of 255 packets and 4*255 == 1020 bytes maximum payload. This should be enough space for MQTT-SN messages and Topic Names and Messages.
-By using fixed payload sizes, we can use the RF24-libraries functionality and can match depend on the length of received payload in the module the different protocols: 32 byte are the normal protocol and everything below is the lite protocol (especially 8 byte).
+By using fixed payload sizes, we can use the RF24-libraries functionality and can match depend on the length of received payload in the module the different protocols: 32 byte are the normal protocol and everything below is the lite protocol (especially 8 byte). Additionally in the normal protocol the lower 4 bits in the byte 1 are 0.
 
-Example for single nRF_comprehensive_stream_packet:
+Example for a single nRF_comprehensive_stream_packet:
 
-     | byte 0			  | byte 1 				       | bytes 2     | bytes 3 	  | bytes 4 - 7	| 
-     | bit 0-2 		 |bit 3-8 | bit 0    | bytes 1 - 2  | bytes 3 - 8      | byte 0 - 8  | byte 0 - 8 | byte 0 - 8 	|
-     | msb_streamLengt	 | length | always 1 | message_type | lsb_streamLength | destination | source     | payload	|
+     | byte 0			  		  | byte 1 										| bytes 2     | bytes 3 	| bytes 4 - 7	| 
+     | bit 0-2 			| bit 3-8 | bit 0    | bytes 1 - 2  | bytes 3 - 8       | byte 0 - 8  | byte 0 - 8  | byte 0 - 8 	|
+     | msb_streamLengt	|  length | always 1 | message_type | lsb_streamLength  | destination | source		| payload		|
      
 // TODO: add a section how these two protocols are not overlapping and how we can use them both with prior code and what has to be exchanged/modified
 
