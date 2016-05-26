@@ -134,4 +134,57 @@ For enabling debug outputs and profiling take a look at the top of file nRF.h, b
 For configurating sleep durations and retries take a look at the top of file nRF.h, too.
 For implementation details see file nRF.cpp.
 
+### Idea for a lite protocol
+Now we go down and think about each bit, to shrink down the header content.
+THe reasons are:
+The nRF24L01+ modules have a range which is depend on: the length of the send bytes and the Mbps.
+Best range values are seen with 8 bytes maximum sending.
 
+First we change the nRF_address to 1-n bytes where n is between 1 and 5.
+So we save here a lot of bytes.
+For not altering the API we can add leading zeros to unused bytes.
+E.g. a nRF_adddress with 2 bytes: 0x25, 0x22 becomes in the receiveForMeCallback method a nRF_address with 5 bytes with leading zeros: 0x00, 0x00, 0x00, 0x25, 0x22. Of course as always: The builder has to take care that 2 addresses are not given twice.
+
+nRF_address (1-n bytes):
+
+     | byte 0 | ... | byte n | 
+
+Second we change the nRF_stream_data packet.
+We need only 3 different data types, and then we only need 2 bits (theoretically).
+But to stay outside of the MQTT-SN message type ranges 0x00 to 0x1D 00011101 and 0xFE (0b1111 1110) we need to change bit-combination which do not use the MQTT-SN message type bitcombinations.
+
+  StreamRequest           = 0x80 // 0b1000 0000
+  StreamAck               = 0x90 // 0b1001 0000
+  StreamData              = 0xA0 // 0b1010 0000
+  reserved		  = 0xB0, 0xC0, 0xD0, 0xF0 (here is a reserved bit here with a 1: 0b0100 0000
+  by this way 0xFE (0b1111 1110) is still available for Encapsulated message and we only need 4 bits for message types.
+
+Furthermore we use the lower 4 bits for the streamFlags and streamLength.
+For the streamFlags are 4 bytes enough, so we only move them from the end of the header into the lower 4 bits in the type field (compared to the prior protocol).
+For the streamLength this means we can only have a maximum of 15 streamPackets. The question is now if this is enough, if we assume we have a the minimum values: 1 bytes length, 1 byte type+streamLength/Flags, 1 byte destination, 1 byte source meaning a 4 byte header, and with a maximum bytes to send of 8 bytes, we have 4 byte payload. So we have 4*15 == 60 bytes payload maximum. I assume this i not enough. Theoretically we can get some bit from the length byte. For a maximum bytes to send of 32 bytes we only need 6 bits ( 32 == 0b00100000).
+Further Ideas:
+Of course now we can do tricks like only telling the payload length then we need only 32-4 (we assume 4 byte header) = 28 ( == 0b00011100 ) 5 bits. Doing a different tricks like assuming that we know when we receive a message, we can use the length of 31 as 32 and 0 is 1 (length in packet to reald length in bytes is length+1) and showing still the whole byte cound. Last but not least, less then 5 bits for the length field is not possible.
+Taking these 3 bits and add them to the the streamLength field we have a maximum of 127 streamPackets and 4*127 == 508 bytes.
+This is a lot more. We still have a reserved bit in the message type (the 6th bit).
+
+So i suggest to rearrange to use only the first 3 bits (first bit for the non overlapping with MQTT message types and 2 bits for the protocol message types) the message types like following:
+  StreamRequest           = 0xE0 // 0b1000 0000
+  StreamAck               = 0xA0 // 0b1010 0000
+  StreamData              = 0xC0 // 0b1100 0000
+This ensures that in the higher 3 bits for the message type (1 bit for non-overlapping with mqtt message types and 2 bytes for protocol message type but without 0b011) that we never have  0xFE (0b1111 1110) == Encapsulated message as protocol combination).
+Now we have 5 bits for protocol stuff left or we use it for the streamLength like thought about above.
+Leaving aside no/unicast available (never used yet) we need only 3 bits in the prior protocol, namely dataComplete(Corrupted, streamComplete/Corrupted, streamAccepted/Denied. These flags appear in a certain context with the message types. 
+We can shrink this down by using the message type as context:
+In a StreamData message we do not need any flags, in a StreamRequest message we dont need any flags, too.
+Only in a StreamAck message we need flags and fortunately we do not need any streamLength information here.
+So we can use the lower 5 bits in StreamAck packets for Flags, and in StreamRequest/StreamData for the StreamLength.
+In a StreamAck message the 0b0001 0000 bit is always 0.
+In StreamRequest/StreamData the 0b0001 0000 bit is used for the StreamLength, additionally the 0b0000 1111 bits, and then we can think about the bits out of the length field. we have there 3 bits left (using all compression stuff) so we have a total of 3+5 = 8 bits for the streamlength, providing a maximum streamLength of 255 packets and 4*255 == 1020 bytes maximum payload. This should be enough space for MQTT-SN messages and Topic Names and Messages.
+
+Example for single nRF_comprehensive_stream_packet:
+
+     | byte 0			  | byte 1 				       | bytes 2     | bytes 3 	  | bytes 4 - 7	| 
+     | bit 0-2 		 |bit 3-8 | bit 0    | bytes 1 - 2  | bytes 3 - 8      | byte 0 - 8  | byte 0 - 8 | byte 0 - 8 	|
+     | msb_streamLengt	 | length | always 1 | message_type | lsb_streamLength | destination | source     | payload	|
+     
+// TODO: add a section how these two protocols are not overlapping and how we can use them both with prior code and what has to be exchanged/modified
